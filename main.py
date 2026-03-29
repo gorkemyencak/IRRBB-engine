@@ -10,7 +10,6 @@ def main():
     loader_yc = FredYCDownloader()
     data_yc = loader_yc.download() 
 
-
     loader_ld = KaggleCSVLoader(dataset_key = 'loan_default')
     loader_ld.download_dataset()
     data_ld = loader_ld.load_all()
