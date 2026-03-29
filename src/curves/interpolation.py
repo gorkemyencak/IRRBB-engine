@@ -58,4 +58,32 @@ class CurveInterpolator:
         zero_rates = -np.log(discountfactor_interp) / target_tenors
 
         return zero_rates
+    
+    def build_interp_curve(
+            self,
+            max_years = 30,
+            method = 'log_df'
+    ):
+        """ Returns interpolated curve up to max_years maturity """
+        days = np.arange(1, int(max_years * 365) + 1)
+        target_tenors = days / 365
+        rates = np.empty(len(target_tenors))
+
+        if method == 'linear':
+            rates = self.linear_rate_interp(
+                target_tenors = target_tenors
+            )
+        elif method == 'log_df':
+            rates = self.log_discount_interp(
+                target_tenors = target_tenors
+            )
+        else:
+            raise ValueError(f"Unknown method {method}, must be either 'linear' or 'log_df'")
+        
+        curve_df = pd.DataFrame({
+            'tenor_years': target_tenors,
+            'zero_rate': rates
+        })
+
+        return curve_df
             
