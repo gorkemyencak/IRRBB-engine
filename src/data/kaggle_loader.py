@@ -106,7 +106,7 @@ class KaggleCSVLoader:
             file_name: str
     ) -> Path:
         
-        return self.parquet_dir / file_name.replace('csv.gz', '.parquet').replace('.csv', '.parquet')
+        return self.parquet_dir / file_name.replace('csv.gz', 'parquet').replace('.csv', 'parquet')
 
     
     def _save_parquet(
