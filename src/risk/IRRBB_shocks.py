@@ -44,18 +44,26 @@ class IRRBBShock:
         )
 
         shock_decimal = shock_bps / 10000
-        shocked_curve['rate'] = shocked_curve['rate'] + scale * shock_decimal
+        shocked_curve['rate'] += scale * shock_decimal
+
+        return shocked_curve
+    
+    def _apply_parallel_shock(self, shock_bps):
+
+        shocked_curve = self.base_curve.copy()
+        shock_decimal = shock_bps / 10000
+        shocked_curve['rate'] += shock_decimal
 
         return shocked_curve
 
     # Basel Scenarios
     def parallel_up(self):
 
-        return self._apply_shock(shock_bps = 200)
+        return self._apply_parallel_shock(shock_bps = 200)
 
     def parallel_down(self):
 
-        return self._apply_shock(shock_bps = -200)
+        return self._apply_parallel_shock(shock_bps = -200)
 
     def steepener(self):
 
