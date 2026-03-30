@@ -42,20 +42,33 @@ class CurveInterpolator:
             self,
             target_tenors
     ):
-        
+        # step 1: market discount factors
         discount_factors = np.exp(-self.rates * self.tenors)
 
+        # step 2: take log(DF)
+        log_df = np.log(discount_factors)
+
+        # step 3: interpolate log(DF)
         f = interp1d(
             self.tenors,
-            discount_factors,
-            fill_value = 'extrapolate' # pyright: ignore
+            log_df,
+            fill_value = 'extrapolate', # pyright: ignore
+            kind = 'linear'
         )
 
-        log_discountfactor_interp = f(target_tenors)
-        discountfactor_interp = np.exp(log_discountfactor_interp)
+        log_df_interp = f(target_tenors)
 
-        # converting back to zero rates
-        zero_rates = -np.log(discountfactor_interp) / target_tenors
+        # step 4: convert back to discount factors
+        discountfactor_interp = np.exp(log_df_interp)
+
+        # step 5: converting back to zero rates
+        eps = 1e-8
+        zero_rates = -np.log(discountfactor_interp) / np.maximum(target_tenors, eps)
+
+        # short-end anchor
+        first_tenor = self.tenors[0]
+        first_rate = self.rates[0]
+        zero_rates[target_tenors < first_tenor] = first_rate
 
         return zero_rates
     
