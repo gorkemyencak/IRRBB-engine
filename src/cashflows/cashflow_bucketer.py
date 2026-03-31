@@ -56,7 +56,7 @@ class CashflowBucketer:
 
         # compute the time to maturity
         df['ttm'] = self._year_fraction(
-            date_series = df['date']
+            date_series = pd.to_datetime(df['date'])# df['date']
         )
 
         # remove past cashflows
@@ -64,7 +64,7 @@ class CashflowBucketer:
 
         # assign basel buckets
         df['bucket'] = df['ttm'].apply(self._assign_bucket)
-        
+
         return df
     
 
@@ -75,18 +75,34 @@ class CashflowBucketer:
         
         df = self.assign_buckets(df = portfolio_cf)
 
+        # split assets and liabilities
+        df['assets_cf'] = np.where(
+            df['instrument_type'] == 'asset',
+            df['total_cashflow'],
+            0
+        )
+
+        df['liabilities_cf'] = np.where(
+            df['instrument_type'] == 'liability',
+            df['total_cashflow'],
+            0
+        )
+
         bucketed_cf = (
             df
             .groupby('bucket')
             .agg(
-                principal = ('principal', 'sum'),
-                interest = ('interest', 'sum'),
-                total_cashflow = ('total_cashflow', 'sum')
+                asset_cf = ('assets_cf', 'sum'),
+                liability_cf = ('liabilities_cf', 'sum')
             )
             .reindex([b[0] for b in BUCKETS])
             .fillna(0)
             .reset_index()
         )
+
+        # Gap
+        bucketed_cf['gap'] = bucketed_cf['asset_cf'] - bucketed_cf['liability_cf']
+        bucketed_cf['cumulative_gap'] = bucketed_cf['gap'].cumsum()
 
         return bucketed_cf
     
@@ -99,7 +115,7 @@ class CashflowBucketer:
         gap = bucketed_cf.copy()
         gap['gap'] = gap['total_cashflow']
         gap['cumulative_gap'] = gap['gap'].cumsum()
-        
+
         return gap
     
 
