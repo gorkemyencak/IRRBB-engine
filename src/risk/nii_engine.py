@@ -64,7 +64,7 @@ class NIIEngine:
 
         # step 3: recompute interest under repricing rate
         cf_1y['repriced_interest'] = (
-            cf_1y['notional'] * cf_1y['repricing_rate']
+            cf_1y['outstanding_balance'] * cf_1y['repricing_rate']
         )
 
         # step 4: split asset vs liability
