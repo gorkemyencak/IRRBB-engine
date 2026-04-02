@@ -82,6 +82,60 @@ class FixedRateLoan(BaseInstrument):
         df = pd.DataFrame(rows)
 
         return df
+    
+
+    def _year_faction(
+            self,
+            valuation_date,
+            dates
+    ):
+        
+        valuation_date = pd.to_datetime(valuation_date)
+
+        return (pd.to_datetime(dates) - valuation_date).dt.days / 365.25
+    
+
+    def pricing_cashflows(
+            self,
+            valuation_date
+    ):
+        """ Convert scheduled cashflows into (times, cashflows) used by pricing/EVE engines """
+        df = self.generate_cashflows()
+
+        # compute time-to-maturity in years
+        df['ttm'] = self._year_faction(
+            valuation_date = valuation_date,
+            dates = df['date']
+        )
+
+        # remove past cashflows
+        df = df[df['ttm'] > 0]
+
+        times = df['ttm'].values
+        cashflows = df['total_cashflow'].values
+
+        # sorted cashflows
+        idx = np.argsort(np.array(times))
+        times = times[idx]
+        cashflows = cashflows[idx]
+
+        return times, cashflows
+       
+    # pv of cashflows
+    def present_value(
+            self,
+            discount_curve,
+            valuation_date
+    ):
+        """ PV = sum(cashflow_t * DF(t)) """
+        times, cashflows = self.pricing_cashflows(
+            valuation_date = valuation_date 
+        )
+
+        return discount_curve.present_value(
+            cashflows = cashflows,
+            times = times
+        )
 
 
 

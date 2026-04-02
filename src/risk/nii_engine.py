@@ -81,4 +81,45 @@ class NIIEngine:
         nii = asset_interest - liability_interest
 
         return nii
+    
+
+    def compute_nii_from_instruments(
+            self,
+            fixed_loans,
+            floating_loans,
+            nmd_model,
+            discount_curve,
+            rate_shock
+    ):
+        """ 12M NII simulation using instruments """
+        nii_assets = 0.0
+
+        # fixed loans -< fixed income over 1Y horizon
+        for loan in fixed_loans:
+            df = loan.generate_cashflows()
+            df['date'] = pd.to_datetime(df['date'])
+
+            cf_1y = df.loc[
+                (df['date'] > self.valuation_date) &
+                (df['date'] <= self.horizon_date)
+            ]
+
+            nii_assets += cf_1y['interest'].sum()
+
+        # floating loans -> reprice using forward curve
+        for loan in floating_loans:
+            times, cfs = loan.generate_cashflows(
+                discount_curve = discount_curve
+            )
+            nii_assets += cfs[times <= 1].sum()
+
+        # deposits -> beta repricing
+        deposit_rate_change = nmd_model.deposit_rate_shock(
+            rate_shock = rate_shock
+        )
+        deposit_cost = nmd_model.balance * deposit_rate_change
+
+        nii = nii_assets - deposit_cost
+
+        return nii
 
