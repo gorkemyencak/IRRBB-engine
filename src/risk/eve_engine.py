@@ -41,7 +41,8 @@ class EVEEngine:
             self,
             fixed_loans,
             floating_loans,
-            nmd_model
+            nmd_model,
+            swaps = None
     ):
         """ Full Bank EVE """
         asset_pv = 0.0
@@ -56,6 +57,11 @@ class EVEEngine:
         # floating loans
         for loan in floating_loans:
             asset_pv += loan.present_value(self.discount_curve)
+
+        # swaps hedge portfolio
+        if swaps is not None:
+            for swap in swaps:
+                asset_pv += swap.present_value(self.discount_curve)
         
         # NMD liabilities
         times, cashflows = nmd_model.total_cashflows()
