@@ -1,7 +1,7 @@
 import numpy as np
 
 # tenor we allow Treasure to trade
-Hedge_Tenors = np.array([1, 2, 3, 5, 7, 10]) # in years
+Hedge_Tenors = np.array([1, 2, 5, 10, 20, 30]) # in years
 
 def swap_dv01(
         notional: float,

@@ -8,11 +8,11 @@ class HedgeOptimizer:
     """ Finds swap notionals that neutralize bank DV01 """
     def __init__(
             self, 
-            bank_dv01
+            bank_kr_dv01_vector
     ):
         
         # total bank DV01 exposure
-        self.bank_dv01 = bank_dv01
+        self.bank_kr_dv01_vector = np.array(bank_kr_dv01_vector)
 
         # DV01 of swaps per 1 million notional
         self.swap_dv01 = hedge_dv01_vector()
@@ -23,8 +23,8 @@ class HedgeOptimizer:
             notionals
     ):
         """ DV01 of bank after adding hedge swaps """
-        hedge_dv01 = np.sum(notionals * self.swap_dv01)
-        total_dv01 = self.bank_dv01 + hedge_dv01         # total risk = bank risk + hedge risk
+        hedge_dv01 = notionals * self.swap_dv01
+        total_dv01 = self.bank_kr_dv01_vector + hedge_dv01         # total risk = bank risk + hedge risk
 
         return total_dv01
     
@@ -37,7 +37,9 @@ class HedgeOptimizer:
         Objective target is to set DV01 ~= 0
         Optimizer minimizes squared errors        
         """
-        return self.portfolio_dv01(notionals = notionals) ** 2
+        residual_curve = self.portfolio_dv01(notionals = notionals)
+
+        return np.sum(residual_curve ** 2)
     
 
     def optimize(self):
@@ -69,9 +71,6 @@ class HedgeOptimizer:
         print("\n--- Recommended Hedge Trades ---\n")
         for tenor, notional in zip(Hedge_Tenors, notionals):
 
-            if abs(notional) < 1000000:
-                continue
-
             side = "Pay Fixed" if notional > 0 else "Receive Fixed"
 
-            print(f"{side:12} {abs(notional)/1e6:8.1f}m {tenor}Y swap")
+            print(f"{side:12} {abs(notional)/1e6:8.4f}m {tenor}Y swap")
