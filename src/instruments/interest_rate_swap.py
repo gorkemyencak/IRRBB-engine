@@ -4,16 +4,18 @@ class IRSwap:
     """ pay-fixed, receive-floating IR Swap -> positive PV when rates rise """
     def __init__(
             self,
-            notional,
-            fixed_rate,
-            maturity_years,
-            payments_per_year = 4
+            notional: float,
+            fixed_rate: float,
+            maturity_years: float,
+            payments_per_year: int = 4,
+            pay_fixed: bool = True      # trade direction
     ):
         
         self.notional = notional
         self.fixed_rate = fixed_rate
         self.maturity = maturity_years
         self.freq = payments_per_year
+        self.pay_fixed = pay_fixed
 
     # fixed leg cashflows (paid by bank)
     def _fixed_leg_cashflows(self):
@@ -57,19 +59,36 @@ class IRSwap:
             self,
             discount_curve
     ):
-        """ PV = PV(float leg) - PV(fixed leg) """
+        """ 
+        Swap PV depends on trade direction
+
+        Pay-fixed swap:
+            receive floating - pay fixed
+        
+        Receive-fixed swap:
+            receive fixed - pay floating
+        """
+        # build both fixed and floating legs
         t_fix, cf_fix = self._fixed_leg_cashflows()
         t_float, cf_float = self._floating_leg_cashflows(discount_curve = discount_curve)
 
+        # discount both fixed and floating legs
         pv_fixed = discount_curve.present_value(
             cashflows = cf_fix,
             times = t_fix
         )
-
         pv_float = discount_curve.present_value(
             cashflows = cf_float,
             times = t_float
         )
 
-        return pv_float - pv_fixed
+        # trade direction
+        if self.pay_fixed:
+            # pay fixed, receive floating
+            pv = pv_float - pv_fixed
+        else:
+            # receive fixed, pay floating
+            pv = pv_fixed - pv_float
+
+        return pv
 
