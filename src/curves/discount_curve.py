@@ -38,6 +38,19 @@ class DiscountCurve:
             self.curve['discount_factor']
         )
     
+    # Continuously compounded zero rate from discount factor
+    def get_zero_rate(
+            self,
+            t: float
+    ):
+        
+        if t == 0:
+            return 0.0
+        
+        df = self.get_discount_factor(t)
+
+        return -np.log(df) / t
+    
     # Present value of cashflows
     def present_value(
             self,

@@ -54,6 +54,26 @@ class IRSwap:
         
         return times, np.array(cashflows)
     
+    
+    def compute_1y_nii(
+            self,
+            discount_curve,
+            rate_shock
+    ):
+        """ Approximate 1-year NII of swap under shocked rates """
+        accrual = 1 / self.freq
+        n_payments = self.freq
+
+        forward_rate = discount_curve.get_zero_rate(t = 1) + rate_shock
+
+        fixed_leg = self.fixed_rate * self.notional * accrual * n_payments
+        float_leg = forward_rate * self.notional * accrual * n_payments
+
+        if self.pay_fixed:
+            return float_leg - fixed_leg
+        else:
+            return fixed_leg - float_leg
+    
 
     def present_value(
             self,

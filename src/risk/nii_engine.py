@@ -6,11 +6,13 @@ class NIIEngine:
     """ Computes 12-month Net Interest Income under a given curve """
     def __init__(
             self,
-            valuation_date
+            valuation_date,
+            payments_per_year = 4
     ):
         
         self.valuation_date = valuation_date
         self.horizon_date = self.valuation_date + timedelta(days = 365)
+        self.payments_per_year = payments_per_year
 
     # filter next 12M cashflows
     def _filter_1y_cashflows(
@@ -89,12 +91,14 @@ class NIIEngine:
             floating_loans,
             nmd_model,
             discount_curve,
-            rate_shock
+            rate_shock,
+            swaps = None
     ):
-        """ 12M NII simulation using instruments """
+        """ 12M NII simulation using instruments including swap carry for hedged NII """
         nii_assets = 0.0
+        nii_swaps = 0.0
 
-        # fixed loans -< fixed income over 1Y horizon
+        # fixed loans -> fixed income over 1Y horizon (contractual interest [no repricing])
         for loan in fixed_loans:
             df = loan.generate_cashflows()
             df['date'] = pd.to_datetime(df['date'])
@@ -106,20 +110,33 @@ class NIIEngine:
 
             nii_assets += cf_1y['interest'].sum()
 
-        # floating loans -> reprice using forward curve
+        # floating loans -> reprice using shocked forward rate
+        shocked_short_rate = discount_curve.get_zero_rate(t = 1) + rate_shock 
+
         for loan in floating_loans:
             times, cfs = loan.generate_cashflows(
                 discount_curve = discount_curve
             )
-            nii_assets += cfs[times <= 1].sum()
+            mask = times <= 1
+            repriced_interest = shocked_short_rate * loan.notional * times[mask]
 
-        # deposits -> beta repricing
+            nii_assets += repriced_interest.sum()
+
+        # deposits -> behavioral beta repricing
         deposit_rate_change = nmd_model.deposit_rate_shock(
             rate_shock = rate_shock
         )
         deposit_cost = nmd_model.balance * deposit_rate_change
 
-        nii = nii_assets - deposit_cost
+        # swaps
+        if swaps is not None:
+            for swap in swaps:
+                nii_swaps += swap.compute_1y_nii(
+                    discount_curve = discount_curve,
+                    rate_shock = rate_shock
+                )
 
-        return nii
+        nii_total = nii_assets - deposit_cost + nii_swaps # fixed + floating - nmd + swaps
+
+        return nii_total
 
