@@ -219,7 +219,7 @@ class ConstrainedIRRBBOptimizer:
     # optimization runner
     def optimize(self):
         """ 
-        Runs constraint hedge optimization 
+        Runs constrained hedge optimization 
         It returns optimal swap notionals satisfying EVE and NII limits 
         under Basel shock scenarios for a given bound per each vector element
         """
@@ -240,7 +240,24 @@ class ConstrainedIRRBBOptimizer:
             bounds = hedge_bounds,
             constraints = constraints,
             method = 'SLSQP',
-            options = {'maxiter': 100}
+            options = {'maxiter': 10}
         )
 
         return result.x
+
+
+    def hedge_report(
+            self,
+            opt_notionals
+    ):
+        
+        print("\n--- Recommended Hedge Trades ---\n")
+
+        total = np.sum(np.abs(opt_notionals))
+        print(f"Total hedge notionals used: {total:,.0f}")
+
+        for tenor, notional in zip(Hedge_Tenors, opt_notionals):
+
+            side = "Pay Fixed" if notional > 0 else "Receive Fixed"
+
+            print(f"{side:12} {abs(notional)/1e6:8.4f}m {tenor}Y swap")
