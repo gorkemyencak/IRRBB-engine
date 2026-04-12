@@ -139,4 +139,37 @@ class NIIEngine:
         nii_total = nii_assets - deposit_cost + nii_swaps # fixed + floating - nmd + swaps
 
         return nii_total
+    
+    # Basel shock scenario based NII computation
+    def compute_nii_scenario(
+            self,
+            fixed_loans,
+            floating_loans,
+            nmd_model,
+            base_curve,
+            discount_curve,
+            swaps = None
+    ):
+        """ 
+        Computes NII under a shocked curve by inferring the short-rate shock
+        from the curve shift 
+        """
 
+        # infer short-rate shock from 1Y tenor for both base and shocked scenarios
+        base_short_rate = base_curve.get_zero_rate(t=1)
+        shocked_short_rate = discount_curve.get_zero_rate(t=1)
+
+        # Basel shock rate
+        rate_shock = shocked_short_rate - base_short_rate
+
+        # scenario-based NII
+        nii = self.compute_nii_from_instruments(
+            fixed_loans = fixed_loans,
+            floating_loans = floating_loans,
+            nmd_model = nmd_model,
+            discount_curve = discount_curve,
+            rate_shock = rate_shock,
+            swaps = swaps  
+        )
+
+        return nii
